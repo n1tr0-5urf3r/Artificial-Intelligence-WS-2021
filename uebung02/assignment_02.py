@@ -34,6 +34,10 @@ tree = BinaryTree(1,
 def search_tree(tree, val):
     """Actually a breadth first traversal of a tree
 
+    !!!
+    ASSUMING THE ROOT HAS A DEPTH OF 0
+    !!!
+
     :param tree: The Binary Tree to be searched
     :type tree: BinaryTree() object
     :param val: The value to be searched for
@@ -46,19 +50,23 @@ def search_tree(tree, val):
     # The queue is a list of tuples. Each tuple contains the subtree and depth so far
     queue = [(tree, depth)]
     while queue:
+        tree = queue[0][0]
+        depth = queue[0][1]
         # Using a queue of lists, as we dont want to use external libraries for this assignment
-        if queue[0][0].value == val:
-            return queue[0][1] + 1
-        if queue[0][0].left:
-            queue.append((queue[0][0].left, queue[0][1] + 1))
-        if queue[0][0].right:
-            queue.append((queue[0][0].right, queue[0][1] + 1))
+        if tree.value == val:
+            return depth
+        if tree.left:
+            queue.append((tree.left, depth + 1))
+        if tree.right:
+            queue.append((tree.right, depth + 1))
         # Pop item from the queue
         queue = queue[1:]
     # Nothing found!
     return None
 
 ### ------------ (d) -------------- ###
+
+
 def find_path(tree, val):
     """This is also a breadth first search 
 
@@ -75,22 +83,25 @@ def find_path(tree, val):
         return "The searched value is the root!"
 
     while queue:
+        tree = queue[0][0]
+
         # Using a queue of lists, as we dont want to use external libraries for this assignment
-        if queue[0][0].value == val:
+        if tree.value == val:
             return queue[0][1]
-        if queue[0][0].left:
+        if tree.left:
             # Need to copy the list, so we dont use a reference pointer of other subtrees
             path = queue[0][1].copy()
             path.append("left")
-            queue.append((queue[0][0].left, path))
-        if queue[0][0].right:
+            queue.append((tree.left, path))
+        if tree.right:
             path = queue[0][1].copy()
             path.append("right")
-            queue.append((queue[0][0].right, path))
+            queue.append((tree.right, path))
         # Pop item from the queue
         queue = queue[1:]
     # Nothing found!
     return None
+
 
 values = [7, 8, 12, 15, 1, 9, 42]
 
