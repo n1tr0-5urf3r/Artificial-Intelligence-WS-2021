@@ -1,3 +1,5 @@
+### Authors: Lukas Probst, Fabian Ihle
+
 import copy
 
 
@@ -238,7 +240,16 @@ for city in cities.values():
 
 def check_consistency(city):
     inconsistency = []
-    # TODO: (c) Implement the function to check consistency here
+    # Go through all possible goal cities
+    for goal in cities.values():
+        # Check all neighbours
+        for idx, c in enumerate(city.neighbours):
+            h_n = city.h(c)
+            cost = city.dist_neighbours[idx]
+            h_n_prime = c.h(goal)
+            # Check triangle inequality for inconsistency
+            if h_n > cost + h_n_prime:
+                inconsistency.append((c, goal))
     return inconsistency
 
 
@@ -262,11 +273,36 @@ def a_star(start_name, goal_name):
     frontier = [current_city]
     explored = []
 
-    # TODO: (d) Expand node, update queues and reach goal city in this section
+    while frontier:
+        # Expand the city with the lowest f value
+        current_city = frontier.pop()
+        explored.append(current_city)
+        # Check if we reached the goal city
+        if current_city.name == goal_city.name: 
+            break
+        for idx, n in enumerate(current_city.neighbours):
+            # Dont go to already explored nodes
+            names = [e.name for e in explored]
+            # Search remaining neighbors
+            if n.name not in names:
+                n.parent = current_city
+                newN = copy.deepcopy(n)
+                newN.sum_g = current_city.sum_g + current_city.dist_neighbours[idx]
+                newN.f = int(newN.h(goal_city)) + newN.sum_g
+                frontier.append(newN)
+        # Sort the priority queue (actually implemented as a stack)
+        frontier.sort(key=lambda x: x.f, reverse=True)
+            
+    path = []
+    cost = current_city.sum_g
+    # Collect the path along parent nodes
+    while True:
+        path.append(current_city.name)  
+        if not current_city.parent:
+            break
+        current_city = current_city.parent
+    path.reverse()
 
-    # TODO: (d) Find the path from the start to goal in this section
-
-    path, cost = [], 0  # TODO: remove this line
     return path, cost, explored
 
 

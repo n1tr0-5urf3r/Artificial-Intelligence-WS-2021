@@ -1,3 +1,6 @@
+### Authors: Lukas Probst, Fabian Ihle
+
+
 ### ------------ (a) -------------- ###
 class BinaryTree:
 
@@ -31,8 +34,8 @@ tree = BinaryTree(1,
 
 
 ### ------------ (c) -------------- ###
-def search_tree(tree, val):
-    """Actually a breadth first traversal of a tree
+def search_tree(tree, val, depth=0):
+    """A DFS search recursive based approach
 
     !!!
     ASSUMING THE ROOT HAS A DEPTH OF 0
@@ -45,24 +48,17 @@ def search_tree(tree, val):
     :return: The depth of the found value, or None if not found
     :rtype: Int or None
     """
-    # Initialize values
-    depth = 0
-    # The queue is a list of tuples. Each tuple contains the subtree and depth so far
-    queue = [(tree, depth)]
-    while queue:
-        tree = queue[0][0]
-        depth = queue[0][1]
-        # Using a queue of lists, as we dont want to use external libraries for this assignment
-        if tree.value == val:
-            return depth
-        if tree.left:
-            queue.append((tree.left, depth + 1))
-        if tree.right:
-            queue.append((tree.right, depth + 1))
-        # Pop item from the queue
-        queue = queue[1:]
-    # Nothing found!
-    return None
+    if tree == None:
+        return None
+
+    if val == tree.value:
+        return depth
+
+    result = search_tree(tree.left, val, depth+1)
+    if result == None:
+        result = search_tree(tree.right, val, depth+1)
+
+    return result
 
 ### ------------ (d) -------------- ###
 
@@ -77,7 +73,7 @@ def find_path(tree, val):
     :return: A list of directions left/right
     :rtype: List of Strings or None
     """
-    # The queue is a list of tuples. Each tuple contains the subtree and path so far
+    # The queue is a list of tuples. Each tuple contains the subtree and path so far found
     queue = [(tree, [])]
     if tree.value == val:
         return "The searched value is the root!"
