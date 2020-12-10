@@ -1,4 +1,4 @@
-### Authors: Lukas Probst, Fabian Ihle
+# Authors: Lukas Probst, Fabian Ihle
 
 import copy
 
@@ -278,7 +278,7 @@ def a_star(start_name, goal_name):
         current_city = frontier.pop()
         explored.append(current_city)
         # Check if we reached the goal city
-        if current_city.name == goal_city.name: 
+        if current_city.name == goal_city.name:
             break
         for idx, n in enumerate(current_city.neighbours):
             # Dont go to already explored nodes
@@ -287,17 +287,18 @@ def a_star(start_name, goal_name):
             if n.name not in names:
                 n.parent = current_city
                 newN = copy.deepcopy(n)
-                newN.sum_g = current_city.sum_g + current_city.dist_neighbours[idx]
+                newN.sum_g = current_city.sum_g + \
+                    current_city.dist_neighbours[idx]
                 newN.f = int(newN.h(goal_city)) + newN.sum_g
                 frontier.append(newN)
         # Sort the priority queue (actually implemented as a stack)
         frontier.sort(key=lambda x: x.f, reverse=True)
-            
+
     path = []
     cost = current_city.sum_g
     # Collect the path along parent nodes
     while True:
-        path.append(current_city.name)  
+        path.append(current_city.name)
         if not current_city.parent:
             break
         current_city = current_city.parent
@@ -306,8 +307,10 @@ def a_star(start_name, goal_name):
     return path, cost, explored
 
 
-start_cities = ['Hamburg', 'Bremen', 'Kiel', 'Dresden', 'Stuttgart']
-goal_cities = ['Freiburg', 'Augsburg', 'Ulm', 'Karlsruhe', 'Stuttgart']
+start_cities = ['Hamburg', 'Bremen', 'Kiel', 'Dresden',
+                'Stuttgart', 'Hamburg', 'Muenchen', 'Stuttgart', 'Rostock']
+goal_cities = ['Freiburg', 'Augsburg', 'Ulm', 'Karlsruhe',
+               'Stuttgart', 'Muenchen', 'Berlin', 'Essen', 'Lindau']
 for start, goal in zip(start_cities, goal_cities):
     path, cost, explored = a_star(start, goal)
     print(start, '-->', goal, ', Path:', path)

@@ -1,3 +1,5 @@
+# Authors: Lukas Probst, Fabian Ihle
+
 import copy
 
 
@@ -187,22 +189,22 @@ def rbfs(start, goal, f_limit, count=0):
     #  - Update the f cost and parent in each successor object
     successors = []
     for idx, neighbor in enumerate(start.neighbours):
-        newNeighbor  = copy.copy(neighbor)
         neighbor.parent = start
-        if neighbor.parent.name != neighbor.name:
-            #print("{}<->{}".format(start.name, neighbor.name))
-            if start.parent and start.parent.name == neighbor.name:
-                continue
-            newNeighbor.sum_g = start.sum_g + start.dist_neighbours[idx]
-            newNeighbor.f = max(int(newNeighbor.h(goal)) + newNeighbor.sum_g, start.f)
-            successors.append(newNeighbor)
-    # Sort by f-value, lower to higher
-    successors.sort(key=lambda x: x.f)
+        newNeighbor  = copy.copy(neighbor)
+        #print("{}<->{}".format(start.name, neighbor.name))
+        if start.parent and start.parent.name == neighbor.name:
+            # Dont include its own parent as neighbor to prevent loops
+            continue
+        newNeighbor.sum_g = start.sum_g + start.dist_neighbours[idx]
+        newNeighbor.f = max(int(newNeighbor.h(goal)) + newNeighbor.sum_g, start.f)
+        successors.append(newNeighbor)
     # Check if there are no successors
     if not successors:
-        return False, start, count, float('Inf')
+        # Dead end here, set f to Inf so we never go here again
+        start.f = float('Inf')
+        return False, start, count, f_limit
 
-    # TODO: Run the loop here. In the loop you should
+    # Run the loop here. In the loop you should
     #  - Choose the next city to be expanded (Lowest f-cost city in successors)
     #  - Check if the minimum f cost exceeds the f limit
     #  - Find the second best (alternative) cost
@@ -210,8 +212,11 @@ def rbfs(start, goal, f_limit, count=0):
     #  - Stop this function if goal is found
 
     while True:
+        # Sort by f-value, lower to higher
         successors.sort(key=lambda x: x.f)
         best = successors[0]
+        #print("----")
+        #print("Start", start.name)
         #print([x.name+":"+str(x.f) for x in successors])
         #print("f-limit", f_limit)
         #print("best f", best.f)
@@ -225,6 +230,7 @@ def rbfs(start, goal, f_limit, count=0):
             alternative = float('Inf')
         #print("alt", alternative)
 
+        # Set new f_limit as described in Chapter 3 Slide 56
         result, final_city, count, f_limit = rbfs(best, goal, f_limit=min(f_limit, alternative), count=count+1)
         if result:
             return result, final_city, count, 0
@@ -237,10 +243,9 @@ def graphsearch_rbfs(start_name, goal_name):
     current_city.f = current_city.h(goal_city)
     result, final_city, count, _ = rbfs(current_city, goal_city, f_limit=float('Inf'))
     path = [final_city.name]
-    while final_city and final_city.name != start_name:
+    while final_city.name != start_name:
         final_city = final_city.parent
-        if final_city:
-            path.append(final_city.name)
+        path.append(final_city.name)
     # Note: The path list is in the order from goal to start.
     # Therefore, when returning or printing the path we reverse its order
     print(start_name, '-->', goal_name)
@@ -257,11 +262,11 @@ path, num_visited_cities = graphsearch_rbfs('Muenchen', 'Berlin')
 
 
 def ida_star_dls(current_city, goal_city, limit, path):
-    result, limit, path, count = ida_star_recursive_dls(current_city, goal_city, limit, path=path)
+    result, limit, path, count = ida_star_recursive_dls(current_city, goal_city, limit, current_city, path=path)
     return result, limit, path, count
 
 
-def ida_star_recursive_dls(current, goal, limit, cutoff=0, path=[], count=0):
+def ida_star_recursive_dls(current, goal, limit, start, cutoff=0, path=[], count=0):
     """
     This function should follow the algorithm in Fig 3.17 in the book.
     :param current: Object of DefineCity class which we are currently expanding
@@ -275,25 +280,66 @@ def ida_star_recursive_dls(current, goal, limit, cutoff=0, path=[], count=0):
              path: A list containing the path from the goal to the start city.
              count: The integer which counted the total number of times the algorithm expanded nodes.
     """
-    # TODO: Goal test here
+
+    def build_path(current_city, start_city):
+        path = [current_city]
+        while current_city.name != start_city.name:
+            current_city = current_city.parent
+            path.append(current_city)
+        return path
+
+    # Goal test here
     if current.name == goal.name:
-        return True, goal, count
+        return True, limit, path, count
 
-    # TODO: Check if the depth limit exceeded
+    # Check if the depth limit exceeded
+    if current.f > limit:
+        return False, limit, path, count
 
-    # TODO: When goal is not reached and depth limit is not exceeded, write the code here
+    # When goal is not reached and depth limit is not exceeded, write the code here
     #  - Add all possible neighbours of the current city here in successors list
     #   - Use copy.copy() to add new nodes
     #   - Update the f cost and parent in each successor object
-    #  - Find smallest f-cost of any node that exceeded the limit in the previous iteration.
-    #  - Recursively call this function for each successor
-    #  - Return the result if you reach the goal. Check this after each recursive call
-    #  - Check if cost limit was exceeded. Set the cutoff occured flag to true  if cost exceeds the limit for any successor
 
-    # TODO: Check if cutoff occured flag was set to true. Return the new cost limit for the next iteration.
+    newLimit = float('Inf')
+    successors = []
+
+    path = build_path(current, start)
+    pathNames = [x.name for x in path]
+
+    for idx, neighbour in enumerate(current.neighbours):
+        neighbour.parent = current
+        newNeighbor  = copy.copy(neighbour)
+        if current.parent.name != neighbour.name:
+            if neighbour.name not in pathNames:
+                newNeighbor.sum_g = current.sum_g + current.dist_neighbours[idx]
+                newNeighbor.f = int(newNeighbor.h(goal)) + newNeighbor.sum_g
+                successors.append(newNeighbor)
+
+    #  - Find smallest f-cost of any node that exceeded the limit in the previous iteration.
+    successorCost = [x.f for x in successors]
+    filteredSucc = list(filter(lambda x: x > limit, successorCost))
+    newLimit = min(filteredSucc + [newLimit])
+    
+    #  - Recursively call this function for each successor
+
+    for s in successors:
+        result, limit, path, count = ida_star_recursive_dls(s, goal, limit, start, False, path, count=count+1)
+
+        #  - Return the result if you reach the goal. Check this after each recursive call
+        if result:
+            return True, limit, path, count
+
+        #  - Check if cost limit was exceeded. Set the cutoff occured flag to true  if cost exceeds the limit for any successor
+        if s.f > limit:
+            cutoff=True
+
+    # Check if cutoff occured flag was set to true. Return the new cost limit for the next iteration.
+    if cutoff:
+        return False, newLimit, path, count
     #  Otherwise, Return failure
-    result, limit, path, count = False, 0, [], 0
-    return True, None, path, count
+
+    return False, limit, path, count
 
 
 def graphsearch_ida_star(start_name, goal_name):
@@ -317,10 +363,7 @@ def graphsearch_ida_star(start_name, goal_name):
     return path, count
 
 print('\n----------------- IDA* ---------------------')
-path, num_visited_cities = graphsearch_ida_star('Rostock', 'Lindau')
-
 path, num_visited_cities = graphsearch_ida_star('Hamburg', 'Muenchen')
-
 path, num_visited_cities = graphsearch_ida_star('Stuttgart', 'Essen')
-
+path, num_visited_cities = graphsearch_ida_star('Rostock', 'Lindau')
 path, num_visited_cities = graphsearch_ida_star('Muenchen', 'Berlin')
