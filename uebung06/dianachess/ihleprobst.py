@@ -86,7 +86,7 @@ def possble_moves(pos)
 
 # After perform_move(), make sure that the agent does not continue searching for moves!
 
-class IhleProbst:
+class MrCustom:
 
     def __init__(self, delay=0, threshold=5):
         self.delay = delay
@@ -94,15 +94,15 @@ class IhleProbst:
 
     def evaluateGame(self, board, player_wins, enemy_wins):
         # print("Evaluation of board started.")
-        SCORE_WIN = 1000
 
-        SCORE_PAWN = 10
-        SCORE_ROOK = 50
-        SCORE_BISHOP = 50
-        SCORE_KNIGHT = 50
-        SCORE_QUEEN = 200
-
-        SCORE_CHECK = 20
+        SCORE = {"p": 10,
+                 "r": 50,
+                 "b": 50,
+                 "n": 50,
+                 "k": 0,
+                 "q": 200,
+                 "win": 1000,
+                 "check": 20}
 
         color = board.player_turn
         score = 0
@@ -110,19 +110,19 @@ class IhleProbst:
         # print("Check winning")
         t1 = time.time()
         if player_wins:
-            return SCORE_WIN
+            return SCORE["win"]
         elif enemy_wins:
-            return -SCORE_WIN
+            return -SCORE["win"]
         t2 = time.time()
         # print("Checking winning in evaluation: ", t2-t1)
 
         # print("Is in Check")
         t1 = time.time()
         if board.is_in_check(color):
-            score -= SCORE_CHECK
+            score -= SCORE["check"]
 
         if board.is_in_check(board.get_enemy(color)):
-            score += SCORE_CHECK
+            score += SCORE["check"]
 
         t2 = time.time()
         # print("Checking Is in Check in evaluation: ", t2-t1)
@@ -134,15 +134,7 @@ class IhleProbst:
                 figure = board[coord]
                 fig_color = board[coord].color
 
-                figurescore = 0
-                if figure.abbriviation == 'p':
-                    figurescore = SCORE_PAWN
-                elif figure.abbriviation == 'r':
-                    figurescore = SCORE_ROOK
-                elif figure.abbriviation == 'b':
-                    figurescore = SCORE_BISHOP
-                elif figure.abbriviation == 'n':
-                    figurescore = SCORE_KNIGHT
+                figurescore = SCORE[figure.abbriviation] if figure.abbriviation in SCORE else 0
 
                 if fig_color == color:
                     score += figurescore
@@ -185,7 +177,7 @@ class IhleProbst:
                 # print("We test main move: ", m, " and the board looks like this:")
                 # board_copy.pprint()
                 # print("Main move test start.")
-                score = self.min_func(board, board_copy, search_depth)
+                score = self.min_func(board, board_copy, search_depth, -math.inf, math.inf)
                 # print("Main move test end.")
 
                 if score > maxscore:
@@ -199,9 +191,11 @@ class IhleProbst:
             bestmove = bestmoves[random.randint(0, len(bestmoves) - 1)]
             board.update_move(bestmove)
             gui.perform_move()
+
+        # DO NOT REMOVE
         board.engine_is_selecting = False
 
-    def min_func(self, original_board, board, depth):
+    def min_func(self, original_board, board, depth, alpha, beta):
 
         color = board.player_turn
 
@@ -213,7 +207,6 @@ class IhleProbst:
             return self.evaluateGame(board, player_wins, enemy_wins)
 
         moves = board.generate_valid_moves(board.player_turn)
-        random.shuffle(moves)
 
         minscore = math.inf
 
@@ -222,15 +215,15 @@ class IhleProbst:
             board_copy._do_move(m[0], m[1])
 
             board_copy.player_turn = board_copy.get_enemy(board_copy.player_turn)
+            minscore = min(minscore, self.max_func(original_board, board_copy, depth - 1, alpha, beta))
 
-            score = 0.99 * self.max_func(original_board, board_copy, depth - 1)
-
-            if score < minscore:
-                minscore = score
+            if minscore <= alpha:
+                return minscore
+            beta = min(beta, minscore)
 
         return minscore
 
-    def max_func(self, original_board, board, depth):
+    def max_func(self, original_board, board, depth, alpha, beta):
 
         color = board.player_turn
 
@@ -252,9 +245,10 @@ class IhleProbst:
 
             board_copy.player_turn = board_copy.get_enemy(board_copy.player_turn)
 
-            score = 0.99 * self.min_func(original_board, board_copy, depth - 1)
+            maxscore = max(maxscore, self.min_func(original_board, board_copy, depth - 1, alpha, beta))
 
-            if score < maxscore:
-                maxscore = score
+            if maxscore >= beta:
+                return maxscore
+            alpha = max(alpha, maxscore)
 
         return maxscore
