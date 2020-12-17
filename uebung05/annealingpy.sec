@@ -1,0 +1,217 @@
+# Authors: Lukas Probst, Fabian Ihle
+
+import copy
+import numpy as np
+
+np.random.seed(0)
+
+""" E1: number of inversions """
+def number_inversions(board):
+    out = 0
+    for i in range(len(board)):
+        for j in range(len(board[0])):
+            for k in range(i,len(board)):
+                if k == i:
+                    for m in range(j, len(board[0])):
+                        if board[k][m] > 0 and board[k][m] < board[i][j]:
+                            out += 1
+                else:
+                    for m in range(len(board[0])):
+                        if board[k][m] > 0 and board[k][m] < board[i][j]:
+                            out += 1
+    return out
+
+""" E2: number of misplaced tiles """
+def number_misplaced(board):
+    out = 0
+    for k in range(len(board)):
+        for j in range(len(board[0])):
+            if board[k][j] > 0 and not board[k][j] == goal[k][j]:
+                out += 1
+    return out
+
+""" E3: Manhattan distance """
+def manhattan_distance(board):
+    out = 0
+    dimx = len(board[0])
+    for k in range(len(board)):
+        for j in range(len(board[0])):
+            if not board[k][j] == 0:
+                distance_x = np.abs((board[k][j] % dimx) - j)
+                distance_y = np.abs(np.floor(board[k][j] / 3) - k)
+                out += distance_x + distance_y
+    return out
+
+def energy(board, which_one):
+    if which_one == 1:
+        return number_inversions(board)
+    elif which_one == 2:
+        return number_misplaced(board)
+    elif which_one == 3:
+        return manhattan_distance(board)
+
+############## TODO Assignment05: Q3(a)
+
+def successor(board):
+    """This function selects the successor state. For this, think of 
+    copy.deepcopy(board), so you don't change the board which is given 
+    as an argument."""
+    board = copy.deepcopy(board)
+    # Find 0:
+    row = 0
+    column = 0
+    for x in range(3):
+        for y in range(3):
+            if (board[x][y] == 0):
+                row = x
+                column = y
+
+
+    # switch method: 0 = left, 1 = up, 2 = right, 3 = down
+    switch_method = 0
+    if row == 0:
+        if column == 0:
+            switch_method = np.random.choice([2,3])
+        elif column == 1:
+            switch_method = np.random.choice([0,2,3])
+        else:
+            switch_method = np.random.choice([0,3])
+    elif row == 1:
+        if column == 0:
+            switch_method = np.random.choice([1,2,3])
+        elif column == 1:
+            switch_method = np.random.choice([0,1,2,3])
+        else:
+            switch_method = np.random.choice([0,1,3])
+    else:
+        if column == 0:
+            switch_method = np.random.choice([1,2])
+        elif column == 1:
+            switch_method = np.random.choice([0,1,2])
+        else:
+            switch_method = np.random.choice([0,1])
+
+    # Switch the 0 around according to switch method:
+    if switch_method == 0:
+        temp = board[row][column -1]
+        board[row][column -1] = 0
+        board[row][column] = temp
+    elif switch_method == 1:
+        temp = board[row - 1][column]
+        board[row - 1][column] = 0
+        board[row][column] = temp
+    elif switch_method == 2:
+        temp = board[row][column + 1]
+        board[row][column + 1] = 0
+        board[row][column] = temp
+    else:
+        temp = board[row + 1][column]
+        board[row + 1][column] = 0
+        board[row][column] = temp
+
+    return board
+
+def scheduler(step):
+    """Scheduler should be a function that takes an integer step parameter."""
+    temperature = 1 / np.log(np.log(np.log(step + 1) + 1) + 1)
+    return temperature
+    
+def simulated_annealing(schedule, board, energy_mode = 1):
+    """Implements the simulated annealing algorithm with the given schedule."""
+    step = 1
+    current = copy.deepcopy(board)
+    while True:
+        temperature = schedule(step)   
+
+        if current == goal:
+            return current, step
+
+        succ = successor(current)
+
+        if succ == goal:
+            return succ, step
+
+        deltaE = energy(succ, energy_mode) - energy(current, energy_mode)
+
+       
+
+        if deltaE < 0:
+            current = succ
+        else: 
+            if (np.random.random() < np.exp(-deltaE / temperature)):
+                current = succ
+        step += 1
+    return current, step
+
+############## TODO Assignment05: Q3(b)
+
+def compare_energies():
+    """Execute the simulated annealing multiple times with the given schedule
+       and average the results."""
+    #this could take a while to run lol
+    e1 = 0
+    e2 = 0
+    e3 = 0
+    samples = 20
+    ## Inversions
+    for x in range(samples):
+        sol, steps = simulated_annealing(scheduler, initstate, 1)
+        e1 += steps
+        print("e1 sample {} was {} steps".format(x, steps))
+
+    #averaging
+    e1 /= samples
+
+    print("With the number of inversions average steps taken were " + str(e1))
+
+    ## Misplaced Tiles
+    for x in range(samples):
+        sol, steps = simulated_annealing(scheduler, initstate, 2)
+        e2 += steps
+        print("e2 sample {} was {} steps".format(x, steps))
+    #averaging
+    e2 /= samples
+
+    print("With the number of Misplaced tiles average steps taken were " + str(e2))
+
+    ## Manhattan distances
+    for x in range(samples):
+        sol, steps = simulated_annealing(scheduler, initstate, 3)
+        e3 += steps
+        print("e3 sample {} was {} steps".format(x, steps))
+    #averaging
+    e3 /= samples
+
+    print("With the sum of manhattan distances average steps taken were " + str(e3))
+
+    return e1, e2, e3
+
+
+
+
+""" 8-puzzle problem """
+goal = [[0,1,2],[3,4,5],[6,7,8]]
+
+initstate = [[8,1,7],[5,4,2],[0,6,3]]
+
+#c) Two initial states
+state1 = [[0,2,1],[4,3,5],[7,6,8]]
+state2 = [[0,1,2],[3,5,4],[7,6,8]]
+
+#solution, steps = simulated_annealing(scheduler, state1)
+#print("Initial state {} delivers solution {} with {} steps".format(initstate, solution, steps))
+
+#### ANSWER:
+#  State 1 is not solvable
+
+solution, steps = simulated_annealing(scheduler, state2)
+print("Initial state {} delivers solution {} with {} steps".format(initstate, solution, steps))
+
+
+###########################################
+
+
+#solution, steps = simulated_annealing(scheduler, initstate)
+#print("Initial state {} delivers solution {} with {} steps".format(initstate, solution, steps))
+e1, e2, e3 = compare_energies()
+print("e1 = {}, e2 = {}, e3 = {}".format(e1, e2, e3))

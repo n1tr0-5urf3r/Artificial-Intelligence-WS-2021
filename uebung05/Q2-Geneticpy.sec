@@ -7,10 +7,15 @@ import random
 import numpy as np
 
 
-np.random.seed(2020)  # for the results reproducibility
+
+
+
+np.random.seed(2020) # for the results reproducibility
+
 
 # ## a)
 # Implement a function `initializePopulation()` which takes the number of individuals in a population and the size of the board (number of queens), and returns a randomly generated population. Each value should be in the range $[0, n]$
+
 
 
 def initialize_population(population_size, num_queens):
@@ -24,22 +29,28 @@ def initialize_population(population_size, num_queens):
         a list of generated population with each element having
         `num_queens` items
     """
-    population = []
-    for p in range(0, population_size):
-        individual = []
-        for i in range(1, num_queens+1):
-            q = random.randint(1, num_queens)
-            individual.append(q)
-        population.append(individual)
-    return population
+    allFields = []
+    for fields in range(population_size):
+        field = []
+        for columns in range(num_queens):
+            ## Why should one start with 0? The queens are represented with values between 1 and n
+            field.append(np.random.randint(1,num_queens + 1))
+
+        allFields.append(field)
+    return allFields
 
 
-population = initialize_population(4, 5)
+
+
+population=initialize_population(10,5)
 print(population)
 
 
-# ## b)
-# Implement a function `findConflicts(individual)` which returns the number of attacking pairs of queens (or #conflicts) for the given input individual (or a population sample / board state).
+# ## b) 
+# Implement a function `findConflicts(individual)` which returns the number of attacking pairs of queens (or #conflicts) for the given input individual (or a population sample / board state). 
+
+
+
 def find_conflicts(individual):
     """
     Args:
@@ -49,43 +60,41 @@ def find_conflicts(individual):
         Total number of conflicts with the current placement of queens
     """
     conflicts = 0
-    for idx, i in enumerate(individual):
-        # Same row to the left
-        for k in range(idx):
-            if individual[k] == i:
+    for column, queen_placement in enumerate(individual):
+        diagonalup = queen_placement
+        diagonaldown = queen_placement
+        for line in range(column + 1, len(individual)):
+            #check line
+            if queen_placement == individual[line]:
                 conflicts += 1
-
-        # Check upper diagonal on left side
-        for k, j in zip(range(idx-1, -1, -1),
-                        range(i-1, 0, -1)):
-            if individual[k] == j:
+            #check diagonals
+            diagonaldown += 1
+            diagonalup -= 1
+            if diagonaldown == individual[line]:
                 conflicts += 1
-
-        # Check lower diagonal on left side
-        for k, j in zip(range(idx-1, -1, -1),
-                        range(i+1, len(individual)+1, 1)):
-            if individual[k] == j:
+            if diagonalup == individual[line]:
                 conflicts += 1
-
+   
     return conflicts
 
 
-# testing find_conflicts
-find_conflicts([1, 1, 1, 1])
-find_conflicts([1, 2, 3, 4])
-find_conflicts([1, 1, 1, 1, 1, 1, 1, 1])
-find_conflicts([1, 2, 3, 4, 5, 6, 7, 8])
-find_conflicts([2, 4, 7, 4, 8, 5, 5, 2])
+
+#testing find_conflicts
+find_conflicts([1,1,1,1])
+print(find_conflicts([1, 1, 1, 1]))
+print(find_conflicts([1, 2, 3, 4, 5, 6, 7, 8]))
+print(find_conflicts([1, 1, 1, 1, 1, 1, 1, 1]))
 
 
 # ## c)
 # Implement a function `randomSelect(population, lamda)` which chooses a parent from the population based on the fitness value. You should use the fitness function $f = exp^{-\lambda x}$ (where $x$
 # is number of conflicts and $\lambda$ is a decaying factor) and Roulette-Wheel selection for parents, i.e. probability of selection of a parent is $p_i = f_i / \sum_{j} f_j$ .
-#
+# 
 # To Solve this part, complete following three functions
 #  - `fitness_function`
 #  - `selection_probability`
 #  - `randomSelect`
+
 
 
 def fitness_function(individual, lamda):
@@ -98,13 +107,20 @@ def fitness_function(individual, lamda):
     Returns:
         fitness of current state of board, i.e. fitness of current individual
     """
-    x = find_conflicts(individual)
-    return np.exp(-lamda*x)
+    fitness = np.exp(0 - lamda * find_conflicts(individual))
+    return fitness
+
 
 
 # Testing of fitness function for 4-queens
-fitness_function([1, 1, 1, 1], 0.1)
-fitness_function([2, 4, 1, 3], 0.1)
+fitness_function([1,1,1,1], 0.1)
+
+
+
+
+fitness_function([2,4,1,3], 0.1)
+
+
 
 
 def selection_probability(fitness_population):
@@ -116,15 +132,18 @@ def selection_probability(fitness_population):
     Returns:
         probability of each individual being chosen, i.e. p_i = f_i / \sum_{j} f_j
     """
-    p = []
-    for f_i in fitness_population:
-        p_i = f_i / sum(fitness_population)
-        p.append(p_i)
-    return p
+    summe = sum(fitness_population)
+    ret = []
+    for pop in fitness_population:
+        ret.append(pop/summe)
+    return ret
+
+
 
 
 # Calling
 selection_probability([0.4, 0.2, 0.5])
+
 
 # In[65]:
 
@@ -144,21 +163,24 @@ def random_select(population, lamda):
     Returns:
         selected individual (state of the board)
     """
-    fitness_population = []
-    for i in population:
-        f_i = fitness_function(i, lamda)
-        fitness_population.append(f_i)
-    pList = selection_probability(fitness_population)
-    rnd_indices = np.random.choice(len(population), p=pList)
-    choice = population[rnd_indices]
-    return choice
+    fitnesspop = []
+    for pops in population:
+        fitnesspop.append(fitness_function(pops, lamda))
+
+    probabilities = selection_probability(fitnesspop)
+    selection = np.random.choice(len(population), p = probabilities)
+    ret = population[selection]
+    return ret
 
 
-random_select(population, 0.2)
+
+
+random_select(population,0.2)
 
 
 # ## d)
 # Implement a function `crossover(parent1, parent2)` which reproduces an offspring by combining parts of each parent at a randomly chosen crossover point.
+
 
 
 def cross_over(parent1, parent2):
@@ -172,15 +194,20 @@ def cross_over(parent1, parent2):
     Returns:
         a new individual
     """
-    rnd_idx = np.random.choice(len(parent1))
-    child = parent1[:rnd_idx] + parent2[rnd_idx:]
-    return child
+    crossover = np.random.randint(0, len(parent1))
+    newIndividual = parent1[:crossover] + parent2[crossover:]
+    
+    return newIndividual
 
 
-cross_over([1, 2, 3, 4, 2], [2, 3, 1, 2, 5])
+
+
+cross_over([1,2,3,4,2],[2,3,1,2,5])
+
 
 # ## e)
 # Implement a function `mutate(individual)` which assigns a random position between 1 and $n$ to each queen with the probability of $1/n$
+
 
 
 def mutate(individual):
@@ -195,19 +222,26 @@ def mutate(individual):
     a mutated child
 
     """
-    for idx, q in enumerate(individual):
-        rng = random.random()
-        if rng < 1 / (len(individual)):
-            pos = random.randint(1, len(individual))
-            individual[idx] = pos
-    return individual
+    mutation = []
+    for queen in individual:
+        chance = np.random.random()
+        if chance < 1 / len(individual):
+            mutation.append(np.random.randint(1, len(individual) + 1))
+        else:
+            mutation.append(queen)
+
+    return mutation
 
 
-mutate([1, 3, 2, 5, 4])
+
+
+
+mutate([1,3,2,5,4])
 
 
 # ## f)
 # Using the functions in previous parts, implement the complete genetic algorithm (as explained in book and slides). Test your algorithm for varying number of queens and varying decay factor $\lambda$.
+
 
 
 def genetic_algorithm(population, lamda):
@@ -224,46 +258,66 @@ def genetic_algorithm(population, lamda):
         Otherwise: returns false
 
     """
-    maxGenerations = 5000
-    generations_count = 0
-    while generations_count <= maxGenerations:
+    generation = 0
+    while True:
         new_population = []
-        generations_count += 1
-        for i in range(0, len(population)):
+
+         # try generation too high:
+
+        if generation > 1000:
+            return False, population[0], generation
+        # increase generation count:
+        generation += 1
+
+
+        #generate new population:
+        for pop in population:
             x = random_select(population, lamda)
             y = random_select(population, lamda)
             child = cross_over(x, y)
+
+           
             child = mutate(child)
+
+            #try goal:
+            conflicts = find_conflicts(child)
+            if (conflicts == 0):
+                return True, child, generation
+            #else: 
+                #print(conflicts)
+           
+
             new_population.append(child)
         population = new_population
-        # Test for result
-        conflicts = find_conflicts(population[i])
-        if conflicts == 0:
-            return True, population[i], generations_count
-    return False, None, maxGenerations
+
+
 
 
 # First Test of Board of Size 4:
 population_size = 16
 population = initialize_population(population_size, 4)
-genetic_algorithm(population, 0.2)
+genetic_algorithm(population,0.2)
+
 
 
 # Test for Different Queen Sizes
 population_size = 16
-num_queens_list = [3, 4, 5, 6, 7, 8, 9]
-lamda_list = [0.1, 0.2, 0.5, 1, 2]
+num_queens_list = [3, 4, 5, 6, 7, 8,9]
+lamda_list = [0.1, 0.2, 0.5, 1 , 2]
 for num_queens in num_queens_list:
     population = initialize_population(population_size, num_queens)
     for lamda in lamda_list:
-        found, solution, generations_count = genetic_algorithm(
-            population, lamda)
+        found, solution, generations_count = genetic_algorithm(population, lamda)
         if found:
-            print('\nNumber of Queens:', num_queens,
-                  '\nlamda:', lamda, '\nSolution:', solution)
-            print('Number of generations:', generations_count,
-                  '\nNumber of individuals', generations_count*population_size)
+            print('\nNumber of Queens:',num_queens, '\nlamda:',lamda, '\nSolution:', solution)
+            print('Number of generations:', generations_count, '\nNumber of individuals',generations_count*population_size)
         else:
-            print('\nNumber of Queens:', num_queens,
-                  '\nlamda:', lamda, '\nSolution:', solution)
+            print('\nNumber of Queens:',num_queens, '\nlamda:',lamda, '\nSolution:', solution)
             print('Solution not found in the specified limit of generations')
+
+
+
+
+
+
+

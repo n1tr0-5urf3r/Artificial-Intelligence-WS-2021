@@ -184,7 +184,7 @@ def successor(board):
 
 def scheduler(step):
     """Scheduler should be a function that takes an integer step parameter."""
-    t = 1/(np.log(np.log(np.log(np.log(step+1)+1)+1)))
+    t = 1/(np.log(np.log(np.log(step+1)+1)+1))
     return t
 
 
@@ -240,6 +240,8 @@ def compare_energies():
 """ 8-puzzle problem """
 goal = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
 # Solvable
+print(simulated_annealing(number_inversions,
+                          [[8, 1, 7], [5, 4, 2], [0, 6, 3]]))
 print(simulated_annealing(number_inversions,
                           [[0, 1, 2], [3, 5, 4], [7, 6, 8]]))
 
