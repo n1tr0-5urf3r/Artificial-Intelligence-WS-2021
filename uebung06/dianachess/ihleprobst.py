@@ -99,13 +99,13 @@ class MrCustom:
                  "r": 50,
                  "b": 50,
                  "n": 50,
-                 "k": 0,
-                 "q": 200,
                  "win": 1000,
                  "check": 20}
 
         color = board.player_turn
         score = 0
+
+        # TODO define better opening
 
         # print("Check winning")
         t1 = time.time()
@@ -179,6 +179,8 @@ class MrCustom:
                 # print("Main move test start.")
                 score = self.min_func(board, board_copy, search_depth, -math.inf, math.inf)
                 # print("Main move test end.")
+
+                # TODO check for time left
 
                 if score > maxscore:
                     maxscore = score
