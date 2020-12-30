@@ -12,8 +12,6 @@ def display(chessboard,turn_time):
     gui = BoardGuiTk(root, chessboard)
     gui.pack(side="top", fill="both", expand="true", padx=4, pady=4)
     gui.draw_pieces()
-
-    #root.resizable(0,0)
     label = tk.Label(text="")
     label.pack()
     gui.label = label
@@ -21,9 +19,6 @@ def display(chessboard,turn_time):
     stopClock(root,chessboard,gui)
     startGame(root,chessboard,gui)
     root.mainloop()
-
-
-# # Start Diana Chess (if weird errors occurs, simply restart kernel and run all)
 
 # 1 = Human
 # 2 = Mr. Random 
