@@ -165,7 +165,7 @@ class MrCustom:
         #print("First, valid moves are generated.")
         moves = board.generate_valid_moves(board.player_turn)
         sorted_moves = self.preorder_moves(moves, board, False)
-        print(sorted_moves)
+        #print(sorted_moves)
 
         if len(moves) > 0:
             # always have one move to to
@@ -231,14 +231,16 @@ class MrCustom:
         """
 
         order = ["k", "r", "b", "n", "p", None]
+        debugStr = "Defend " if min_or_max else "Attack "
         if min_or_max:
             order.reverse()
         m_values = []
         for m in moves:
             # Kill the highest valued target: king, rook, bishop, knight and pawn
+            source = board[m[0]].abbriviation.lower()
             target = board[m[1]].abbriviation.lower() if board[m[1]] else None
             # todo remove last element from tuple
-            m_values.append((m[0], m[1], order.index(target), str(order[order.index(target)])))
+            m_values.append((m[0], m[1], order.index(target), str(order[order.index(source)]) + " " + debugStr + str(order[order.index(target)])))
 
         sorted_moves = sorted(m_values, key=lambda tup: tup[2])
         return sorted_moves
@@ -260,8 +262,7 @@ class MrCustom:
         minscore = math.inf
 
         sorted_moves = self.preorder_moves(moves, board, True)
-        print(sorted_moves)
-
+        #print(sorted_moves)
         for m in sorted_moves:
             # COPY
             _from_fig = board[m[0]]
@@ -314,9 +315,9 @@ class MrCustom:
         maxscore = -math.inf
 
         sorted_moves = self.preorder_moves(moves, board, False)
-        print(sorted_moves)
+        #print(sorted_moves)
 
-        for m in moves:
+        for m in sorted_moves:
             # COPY
             _from_fig = board[m[0]]
             _to_fig = board[m[1]]
