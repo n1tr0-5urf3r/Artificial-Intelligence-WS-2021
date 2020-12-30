@@ -98,10 +98,10 @@ class MrCustom:
 
         SCORE = {"p": 10,
                  "r": 50,
-                 "b": 50,
-                 "n": 50,
+                 "b": 30,
+                 "n": 30,
                  "win": 1000,
-                 "check": 20}
+                 "check": 5}
 
         # As we can not enter color as parameter to __init__ function, as MrNovice does, we set it here.
         # Somehow we always have to set the opposite color of player_turn
@@ -164,15 +164,16 @@ class MrCustom:
 
         #print("First, valid moves are generated.")
         moves = board.generate_valid_moves(board.player_turn)
-        random.shuffle(moves)
-        
+        sorted_moves = self.preorder_moves(moves, board, False)
+        print(sorted_moves)
+
         if len(moves) > 0:
             # always have one move to to
-            gui.chessboard.update_move(moves[0])
+            gui.chessboard.update_move(sorted_moves[0])
 
 
             #print("We will test ", len(moves), " main moves.")
-            for m in moves:
+            for m in sorted_moves:
 
                 
                 # COPY
@@ -221,6 +222,28 @@ class MrCustom:
             gui.perform_move()
         gui.chessboard.engine_is_selecting = False
 
+    def preorder_moves(self, moves, board, min_or_max):
+        """
+        Returns a preordered list of moves
+        :param moves: List of moves
+        :param board: The current state
+        :param min_or_max: True if List should be ordered with least value first
+        """
+
+        order = ["k", "r", "b", "n", "p", None]
+        if min_or_max:
+            order.reverse()
+        m_values = []
+        for m in moves:
+            # Kill the highest valued target: king, rook, bishop, knight and pawn
+            target = board[m[1]].abbriviation.lower() if board[m[1]] else None
+            # todo remove last element from tuple
+            m_values.append((m[0], m[1], order.index(target), str(order[order.index(target)])))
+
+        sorted_moves = sorted(m_values, key=lambda tup: tup[2])
+        return sorted_moves
+
+
     def min_func(self, original_board, board, depth, alpha, beta):
 
         color = self.color
@@ -236,7 +259,10 @@ class MrCustom:
 
         minscore = math.inf
 
-        for m in moves:
+        sorted_moves = self.preorder_moves(moves, board, True)
+        print(sorted_moves)
+
+        for m in sorted_moves:
             # COPY
             _from_fig = board[m[0]]
             _to_fig = board[m[1]]
@@ -286,6 +312,9 @@ class MrCustom:
         random.shuffle(moves)
 
         maxscore = -math.inf
+
+        sorted_moves = self.preorder_moves(moves, board, False)
+        print(sorted_moves)
 
         for m in moves:
             # COPY
