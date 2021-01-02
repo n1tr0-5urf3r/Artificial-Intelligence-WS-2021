@@ -94,6 +94,7 @@ class MrCustom:
         self.delay = delay
         self.TIME_THRESHOLD = threshold
         self.color = None
+        self.firstRun = True
 
     def evaluateGame(self, board, player_wins, enemy_wins):
         # print("Evaluation of board started.")
@@ -103,7 +104,7 @@ class MrCustom:
                  "b": 3.3,
                  "n": 3.2,
                  "win": 1000,
-                 "check": 100}
+                 "check": 10}
 
         field_value = [[1, 1, 1, 1, 1, 1],
                        [1, 1, 1.1, 1.1, 1, 1],
@@ -114,7 +115,6 @@ class MrCustom:
 
         # As we can not enter color as parameter to __init__ function, as MrNovice does, we set it here.
         # Somehow we always have to set the opposite color of player_turn
-        self.color = "white" if board.player_turn == "black" else "black"
         color = self.color
         score = 0
 
@@ -147,11 +147,9 @@ class MrCustom:
                 figure = board[coord]
                 fig_color = board[coord].color
 
-                figurescore = SCORE[figure.abbriviation.lower()] if figure.abbriviation.lower() in SCORE else 0
-                # Get indices of coords, translates A->0 ... F->5
-                col = int(coord[0], 16) % 10
-                row = int(coord[1]) - 1
-                # Field B3 would be field_value[2][1], index 2 is row 3, index 1 is col B
+                figurescore = SCORE[(figure.abbriviation).lower()] if (figure.abbriviation).lower() in SCORE else 0
+                row, col = board.number_notation(coord)
+
                 figurescore = figurescore * field_value[row][col]
 
                 if fig_color == color:
@@ -168,6 +166,10 @@ class MrCustom:
     def generate_next_move(self, gui):
 
         # print("Next move will now be generated:")
+        # This is needed to globally set player color as we dont get that via parameter
+        if self.firstRun:
+            self.color = gui.chessboard.player_turn
+            self.firstRun = False
 
         board = deepcopy(gui.chessboard)
 
@@ -261,7 +263,6 @@ class MrCustom:
     def min_func(self, original_board, board, depth, alpha, beta):
 
         color = self.color
-
         player_wins = board.check_winning_condition(color)
         enemy_wins = board.check_winning_condition(board.get_enemy(color))
         game_ends = player_wins or enemy_wins
