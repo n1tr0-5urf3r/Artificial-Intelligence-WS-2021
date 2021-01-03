@@ -99,6 +99,7 @@ class MrCustom:
     def evaluateGame(self, board, player_wins, enemy_wins):
         # print("Evaluation of board started.")
 
+        # Checks for a passed pawn, meaning that it has passed all pawns and can no longer be attacked by pawns
         def passed_pawn(coord):
             # Checks for a passed pawn, meaning that it has passed all pawns and can no longer be attacked by pawns
             row, col = board.number_notation(coord)
@@ -117,7 +118,6 @@ class MrCustom:
                         figure = board[c]
                         if figure.abbriviation.lower() == "p" and figure.color == "white" and r_i <= row:
                             return False
-            print("{} is a passed pawn by {}!".format(coord, c))
             return True
 
         def pawn_in_same_col():
@@ -143,10 +143,10 @@ class MrCustom:
         SCORE_CHECK = 5
 
         field_value = [[1, 1, 1, 1, 1, 1],
-                       [1, 1, 1.1, 1.1, 1, 1],
-                       [1, 1.2, 1.25, 1.25, 1.2, 1],
-                       [1, 1.2, 1.25, 1.25, 1.2, 1],
-                       [1, 1, 1.1, 1.1, 1, 1],
+                       [1, 1, 1, 1, 1, 1],
+                       [1, 1.05, 1.1, 1.1, 1.05, 1],
+                       [1, 1.05, 1.1, 1.1, 1.05, 1],
+                       [1, 1, 1, 1, 1, 1],
                        [1, 1, 1, 1, 1, 1]]
 
         # As we can not enter color as parameter to __init__ function, as MrNovice does, we set it here.
@@ -194,7 +194,7 @@ class MrCustom:
                     figurescore = SCORE_KNIGHT
                 row, col = board.number_notation(coord)
 
-                # figurescore = figurescore * field_value[row][col]
+                figurescore = figurescore * field_value[row][col]
 
                 if fig_color == color:
                     score += figurescore
@@ -240,6 +240,7 @@ class MrCustom:
         moves = board.generate_valid_moves(board.player_turn)
 
         v = -math.inf
+        bestmoves = []
         best_move = None
         sorted_moves = self.preorder_moves(moves, board, True)
 
@@ -257,8 +258,13 @@ class MrCustom:
             new_v = 0.99 * new_v
             if new_v > v:
                 v = new_v
-                best_move = m
+                # Keep a list of bestmoves to prevent alternating between two equal states
+                bestmoves.clear()
+                bestmoves.append(m)
+            elif new_v == v:
+                bestmoves.append(m)
 
+            best_move = bestmoves[random.randint(0,len(bestmoves)-1)]
             # RESET
             board[m[0]] = _from_fig
             board[m[1]] = _to_fig
@@ -283,6 +289,7 @@ class MrCustom:
         moves = board.generate_valid_moves(board.player_turn)
 
         v = math.inf
+        bestmoves = []
         best_move = None
         sorted_moves = self.preorder_moves(moves, board, True)
 
@@ -301,7 +308,14 @@ class MrCustom:
 
             if new_v < v:
                 v = new_v
-                best_move = m
+                # Keep a list of bestmoves to prevent alternating between two equal states
+                bestmoves.clear()
+                bestmoves.append(m)
+            elif new_v == v:
+                bestmoves.append(m)
+
+            best_move = bestmoves[random.randint(0,len(bestmoves)-1)]
+
 
             # RESET
             board[m[0]] = _from_fig
