@@ -99,6 +99,40 @@ class MrCustom:
     def evaluateGame(self, board, player_wins, enemy_wins):
         # print("Evaluation of board started.")
 
+        def passed_pawn(coord):
+            # Checks for a passed pawn, meaning that it has passed all pawns and can no longer be attacked by pawns
+            row, col = board.number_notation(coord)
+            pawn = board[coord]
+            if pawn.color == "white":
+                for c in board.keys():
+                    r_i, c_i = board.number_notation(c)
+                    if board[c]:
+                        figure = board[c]
+                        if figure.abbriviation.lower() == "p" and figure.color == "black" and r_i >= row:
+                            return False
+            else:
+                for c in board.keys():
+                    r_i, c_i = board.number_notation(c)
+                    if board[c]:
+                        figure = board[c]
+                        if figure.abbriviation.lower() == "p" and figure.color == "white" and r_i <= row:
+                            return False
+            print("{} is a passed pawn by {}!".format(coord, c))
+            return True
+
+        def pawn_in_same_col():
+            # Checks for pawns in the same column, which should be avoided as they hinder each others movement
+            pass
+
+        def isolated_pawn(coord):
+
+            # A single pawn with no sourrounding friendly pawns should seek protection
+            pass
+
+        def rook_behind_pawn():
+            # A rook behind a passed pawn is very valuable, as everyone killing the pawn will immediately be killed by the rook
+            pass
+
         SCORE_WIN = 1000
 
         SCORE_PAWN = 10
@@ -150,7 +184,8 @@ class MrCustom:
                 figurescore = 0
                 fig_name = (figure.abbriviation).lower()
                 if fig_name == 'p':
-                    figurescore = SCORE_PAWN
+                    passed_multiplier = 1.2 if passed_pawn(coord) else 1
+                    figurescore = SCORE_PAWN * passed_multiplier
                 elif fig_name=='r':
                     figurescore = SCORE_ROOK
                 elif fig_name=='b':
