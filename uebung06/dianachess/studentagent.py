@@ -90,7 +90,7 @@ def possble_moves(pos)
 
 class MrCustom:
 
-    def __init__(self, delay=0, threshold=5):
+    def __init__(self, delay=0, threshold=2):
         self.delay = delay
         self.TIME_THRESHOLD = threshold
         self.color = None
@@ -99,12 +99,14 @@ class MrCustom:
     def evaluateGame(self, board, player_wins, enemy_wins):
         # print("Evaluation of board started.")
 
-        SCORE = {"p": 1,
-                 "r": 5.5,
-                 "b": 3.3,
-                 "n": 3.2,
-                 "win": 1000,
-                 "check": 10}
+        SCORE_WIN = 1000
+
+        SCORE_PAWN = 10
+        SCORE_ROOK = 50
+        SCORE_BISHOP = 30
+        SCORE_KNIGHT = 30
+
+        SCORE_CHECK = 5
 
         field_value = [[1, 1, 1, 1, 1, 1],
                        [1, 1, 1.1, 1.1, 1, 1],
@@ -118,24 +120,22 @@ class MrCustom:
         color = self.color
         score = 0
 
-        # TODO define default action when no time left
-
         # print("Check winning")
         t1 = time.time()
         if player_wins:
-            return SCORE["win"]
+            return SCORE_WIN
         elif enemy_wins:
-            return -SCORE["win"]
+            return -SCORE_WIN
         t2 = time.time()
         # print("Checking winning in evaluation: ", t2-t1)
 
         # print("Is in Check")
         t1 = time.time()
         if board.is_in_check(color):
-            score -= SCORE["check"]
+            score -= SCORE_CHECK
 
         if board.is_in_check(board.get_enemy(color)):
-            score += SCORE["check"]
+            score += SCORE_CHECK
 
         t2 = time.time()
         # print("Checking Is in Check in evaluation: ", t2-t1)
@@ -147,10 +147,19 @@ class MrCustom:
                 figure = board[coord]
                 fig_color = board[coord].color
 
-                figurescore = SCORE[(figure.abbriviation).lower()] if (figure.abbriviation).lower() in SCORE else 0
+                figurescore = 0
+                fig_name = (figure.abbriviation).lower()
+                if fig_name == 'p':
+                    figurescore = SCORE_PAWN
+                elif fig_name=='r':
+                    figurescore = SCORE_ROOK
+                elif fig_name=='b':
+                    figurescore = SCORE_BISHOP
+                elif fig_name=='n':
+                    figurescore = SCORE_KNIGHT
                 row, col = board.number_notation(coord)
 
-                figurescore = figurescore * field_value[row][col]
+                # figurescore = figurescore * field_value[row][col]
 
                 if fig_color == color:
                     score += figurescore
@@ -171,70 +180,106 @@ class MrCustom:
             self.color = gui.chessboard.player_turn
             self.firstRun = False
 
+        search_depth = 3
+
+        bestmove = self.alpha_beta_search(gui, search_depth)
+        gui.chessboard.update_move(bestmove)
+        gui.perform_move()
+        gui.chessboard.engine_is_selecting = False
+
+    def alpha_beta_search(self, gui, search_depth):
         board = deepcopy(gui.chessboard)
 
-        search_depth = 2
-        maxscore = -math.inf
+        v, move = self.max_value(gui.chessboard, board, search_depth, -math.inf, math.inf, None)
+        return move
 
-        bestmoves = []
+    def max_value(self, original_board, board, depth, alpha, beta, move_that_lead_here):
+        color = self.color
+        player_wins = board.check_winning_condition(color)
+        enemy_wins = board.check_winning_condition(board.get_enemy(color))
+        game_ends = player_wins or enemy_wins
 
-        # print("First, valid moves are generated.")
+        if ((depth <= 0) or game_ends or (original_board.get_time_left() < self.TIME_THRESHOLD)):
+            return self.evaluateGame(board, player_wins, enemy_wins), move_that_lead_here
+
         moves = board.generate_valid_moves(board.player_turn)
-        sorted_moves = self.preorder_moves(moves, board, False)
-        # print(sorted_moves)
 
-        if len(moves) > 0:
-            # always have one move to to
-            gui.chessboard.update_move(sorted_moves[0])
+        v = -math.inf
+        best_move = None
+        sorted_moves = self.preorder_moves(moves, board, True)
 
-            # print("We will test ", len(moves), " main moves.")
-            for m in sorted_moves:
+        for m in sorted_moves:
+            # COPY
+            _from_fig = board[m[0]]
+            _to_fig = board[m[1]]
+            player, move_number = board.get_current_state()
 
-                # COPY
-                _from_fig = board[m[0]]
-                _to_fig = board[m[1]]
-                player, move_number = board.get_current_state()
+            # PERFORM
+            board._do_move(m[0], m[1])
+            board.switch_players()
 
-                # PERFORM
-                #print("{} doing move {} {}".format(self.color, m[0], m[1]))
-                board._do_move(m[0], m[1])
-                board.switch_players()
+            new_v, new_move = self.min_value(original_board, board, depth - 1, alpha, beta, m)
+            new_v = 0.99 * new_v
+            if new_v > v:
+                v = new_v
+                best_move = m
 
-                # print("We test main move: ", m, " and the board looks like this:")
-                # board_copy.pprint()
-                # print("Main move test start.")
+            # RESET
+            board[m[0]] = _from_fig
+            board[m[1]] = _to_fig
+            board.player_turn = player
+            board.fullmove_number = move_number
 
-                # board.board_states.append(board.to_string())
+            if v >= beta:
+                return v, best_move
+            alpha = max(alpha, v)
 
-                score = self.min_func(gui.chessboard, board, search_depth, -math.inf, math.inf)
+        return v, best_move
 
-                """
-                print("\n\n----------------------\n\n")
-                print("Main move " + "(" +m[0] + ", " + m[1] + ")" + " with score " + str(score) + " test end.\n\n")
-                for state in board.board_states:
-                    print(state)
-                print("\n\n----------------------\n\n")
-                board.board_states.pop()
-                """
+    def min_value(self, original_board, board, depth, alpha, beta, move_that_lead_here):
+        color = self.color
+        player_wins = board.check_winning_condition(color)
+        enemy_wins = board.check_winning_condition(board.get_enemy(color))
+        game_ends = player_wins or enemy_wins
 
-                # RESET
-                board[m[0]] = _from_fig
-                board[m[1]] = _to_fig
-                board.player_turn = player
-                board.fullmove_number = move_number
+        if ((depth <= 0) or game_ends or (original_board.get_time_left() < self.TIME_THRESHOLD)):
+            return self.evaluateGame(board, player_wins, enemy_wins), move_that_lead_here
 
-                if score > maxscore:
-                    maxscore = score
-                    bestmoves.clear()
-                    bestmoves.append(m)
-                    gui.chessboard.update_move(m)
-                elif score == maxscore:
-                    bestmoves.append(m)
+        moves = board.generate_valid_moves(board.player_turn)
 
-            bestmove = bestmoves[random.randint(0, len(bestmoves) - 1)]
-            gui.chessboard.update_move(bestmove)
-            gui.perform_move()
-        gui.chessboard.engine_is_selecting = False
+        v = math.inf
+        best_move = None
+        sorted_moves = self.preorder_moves(moves, board, True)
+
+        for m in sorted_moves:
+            # COPY
+            _from_fig = board[m[0]]
+            _to_fig = board[m[1]]
+            player, move_number = board.get_current_state()
+
+            # PERFORM
+            board._do_move(m[0], m[1])
+            board.switch_players()
+
+            new_v, new_move = self.max_value(original_board, board, depth - 1, alpha, beta, m)
+            new_v = 0.99 * new_v
+
+            if new_v < v:
+                v = new_v
+                best_move = m
+
+            # RESET
+            board[m[0]] = _from_fig
+            board[m[1]] = _to_fig
+            board.player_turn = player
+            board.fullmove_number = move_number
+
+            if v <= alpha:
+                return v, best_move
+            beta = min(beta, v)
+
+        return v, best_move
+
 
     def preorder_moves(self, moves, board, min_or_max):
         """
@@ -259,110 +304,3 @@ class MrCustom:
 
         sorted_moves = sorted(m_values, key=lambda tup: tup[2])
         return sorted_moves
-
-    def min_func(self, original_board, board, depth, alpha, beta):
-
-        color = self.color
-        player_wins = board.check_winning_condition(color)
-        enemy_wins = board.check_winning_condition(board.get_enemy(color))
-        game_ends = player_wins or enemy_wins
-
-        if ((depth <= 0) or game_ends or (original_board.get_time_left() < self.TIME_THRESHOLD)):
-            return self.evaluateGame(board, player_wins, enemy_wins)
-
-        moves = board.generate_valid_moves(board.player_turn)
-
-        minscore = math.inf
-
-        sorted_moves = self.preorder_moves(moves, board, True)
-        # print(sorted_moves)
-        for m in sorted_moves:
-            # COPY
-            _from_fig = board[m[0]]
-            _to_fig = board[m[1]]
-            player, move_number = board.get_current_state()
-           # print("{} doing move {} {} MIN".format(self.color, m[0], m[1]))
-
-            # PERFORM
-            board._do_move(m[0], m[1])
-            board.switch_players()
-
-            # board.board_states.append(board.to_string())
-
-            minscore = min(minscore, self.max_func(original_board, board, depth - 1, alpha, beta))
-
-            """
-            print("\n\n----------------------\n\n")
-            print("Score for this move sequence is: ", score)
-            for state in board.board_states:
-                print(state)
-            print("\n\n----------------------\n\n")
-            board.board_states.pop()
-            """
-
-            # RESET
-            board[m[0]] = _from_fig
-            board[m[1]] = _to_fig
-            board.player_turn = player
-            board.fullmove_number = move_number
-
-            if minscore <= alpha:
-                return minscore
-            beta = min(beta, minscore)
-
-        return minscore
-
-    def max_func(self, original_board, board, depth, alpha, beta):
-
-        color = self.color
-
-        player_wins = board.check_winning_condition(color)
-        enemy_wins = board.check_winning_condition(board.get_enemy(color))
-        game_ends = player_wins or enemy_wins
-
-        if ((depth <= 0) or game_ends or (original_board.get_time_left() < self.TIME_THRESHOLD)):
-            return self.evaluateGame(board, player_wins, enemy_wins)
-
-        moves = board.generate_valid_moves(board.player_turn)
-
-        maxscore = -math.inf
-
-        sorted_moves = self.preorder_moves(moves, board, False)
-        # print(sorted_moves)
-
-        for m in sorted_moves:
-            # COPY
-            _from_fig = board[m[0]]
-            _to_fig = board[m[1]]
-            player, move_number = board.get_current_state()
-
-           # print("{} doing move {} {} MAX".format(self.color, m[0], m[1]))
-
-            # PERFORM
-            board._do_move(m[0], m[1])
-            board.switch_players()
-
-            # board.board_states.append(board.to_string())
-
-            maxscore = max(maxscore, self.min_func(original_board, board, depth - 1, alpha, beta))
-
-            """
-            print("\n\n----------------------\n\n")
-            print("Score for this move sequence is: ", score)
-            for state in board.board_states:
-                print(state)
-            print("\n\n----------------------\n\n")
-            board.board_states.pop()
-            """
-
-            # RESET
-            board[m[0]] = _from_fig
-            board[m[1]] = _to_fig
-            board.player_turn = player
-            board.fullmove_number = move_number
-
-            if maxscore >= beta:
-                return maxscore
-            alpha = max(alpha, maxscore)
-
-        return maxscore
