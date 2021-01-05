@@ -100,14 +100,62 @@ class MrCustom:
         # print("Evaluation of board started.")
 
         def check_pawn(coord):
-            # Checks for a passed pawn, meaning that it has passed all pawns and can no longer be attacked by pawns
-            # Checks for pawns in the same column, which should be avoided as they hinder each others movement
+            """Checks for a passed pawn, meaning that it has passed all pawns and can no longer be attacked by pawns
+                Checks for pawns in the same column, which should be avoided as they hinder each others movement
+            """
+
+            def is_doubled(coord):
+                """
+                Checks for a doubled pawn (having an own pawn to its left/right)
+                Does not apply to pawns in their starting position, as that sometimes will prevent them from moving forward
+                :param coord: The coords of the pawn to be checked
+                """
+
+                def is_in_starting_position(coord):
+                    """
+                    Checks if the pawn has moved before
+                    """
+                    row, col = board.number_notation(coord)
+                    if board[coord].color == "white":
+                        if row == 1:
+                            return True
+                    else:
+                        if row == 4:
+                            return True
+                    return False
+
+                row, col = board.number_notation(coord)
+                if col == 0:
+                    if not is_in_starting_position(coord) and board[
+                        board.letter_notation((row, col + 1))] and board[
+                        board.letter_notation((row, col + 1))].abbriviation.lower() == "p" and board[
+                        coord].color == board[board.letter_notation((row, col + 1))].color:
+                        return True
+                elif col == 5:
+                    if not is_in_starting_position(coord) and board[
+                        board.letter_notation((row, col - 1))] and board[
+                        board.letter_notation((row, col - 1))].abbriviation.lower() == "p" and board[
+                        coord].color == board[board.letter_notation((row, col - 1))].color:
+                        return True
+                else:
+                    if (not is_in_starting_position(coord) and board[
+                        board.letter_notation((row, col - 1))] and board[
+                            board.letter_notation((row, col - 1))].abbriviation.lower() == "p" and board[
+                            coord].color == board[board.letter_notation((row, col - 1))].color) or (
+                            not is_in_starting_position(coord) and
+                            board[board.letter_notation((row, col + 1))] and
+                            board[board.letter_notation((row, col + 1))].abbriviation.lower() == "p" and board[
+                                coord].color == board[board.letter_notation((row, col + 1))].color):
+                        return True
+                return False
+
             row, col = board.number_notation(coord)
             pawn = board[coord]
             is_passed = True
             is_in_same_col = False
             multiplier_passed = 0.3
-            multiplier_same_col = -0.2
+            multiplier_same_col = -0.1
+            multiplier_doubled = 0.2
             if pawn.color == "white":
                 for c in board.keys():
                     r_i, c_i = board.number_notation(c)
@@ -131,17 +179,8 @@ class MrCustom:
                             is_in_same_col = True
             multiplier = 1.0 + multiplier_passed if is_passed else 1.0
             multiplier = multiplier + multiplier_same_col if is_in_same_col else multiplier
+            multiplier = multiplier + multiplier_doubled if is_doubled(coord) else multiplier
             return multiplier
-
-
-        def isolated_pawn(coord):
-
-            # A single pawn with no sourrounding friendly pawns should seek protection
-            pass
-
-        def rook_behind_pawn():
-            # A rook behind a passed pawn is very valuable, as everyone killing the pawn will immediately be killed by the rook
-            pass
 
         SCORE_WIN = 1000
 
@@ -161,27 +200,27 @@ class MrCustom:
                             [1.1, 1.1, 1.1, 1.1, 1.1, 1.1]]
 
         # Control center from afar
-        bishop_field_value = [[1.1, 1, 1, 1, 1.1, 1.1],
-                             [1.1, 1.1, 1, 1, 1.1, 1.1],
-                             [1, 1, 1, 1, 1, 1],
-                             [1, 1, 1, 1, 1, 1],
-                             [1.1, 1.1, 1, 1, 1.1, 1.1],
-                             [1.1, 1, 1, 1, 1, 1.1]]
+        bishop_field_value = [[1.05, 1, 1, 1, 1.1, 1.05],
+                              [1.05, 1.05, 1, 1, 1.05, 1.05],
+                              [1, 1, 1, 1, 1, 1],
+                              [1, 1, 1, 1, 1, 1],
+                              [1.05, 1.05, 1, 1, 1.05, 1.05],
+                              [1.05, 1, 1, 1, 1, 1.05]]
         # Control center
-        knight_field_value = [[1, 1, 1.1, 1.1, 1, 1],
-                             [1.1, 1.1, 1, 1, 1.1, 1.1],
-                             [1, 1, 1, 1, 1, 1],
-                             [1, 1, 1, 1, 1, 1],
-                             [1.1, 1.1, 1, 1, 1.1, 1.1],
-                             [1, 1, 1.1, 1.1, 1, 1]]
+        knight_field_value = [[1, 1, 1.05, 0.5, 1, 1],
+                              [1.05, 1.05, 1, 1, 1.05, 1.05],
+                              [1, 1, 1, 1, 1, 1],
+                              [1, 1, 1, 1, 1, 1],
+                              [1.05, 1.05, 1, 1, 1.05, 1.05],
+                              [1, 1, 0.5, 1.05, 1, 1]]
 
         # Control center
-        rook_field_value = [[1, 1, 1.1, 1.1, 1, 1],
+        rook_field_value = [[1, 1, 1.05, 1.05, 1, 1],
                             [1, 1, 1, 1, 1, 1],
-                             [1.1, 1, 1, 1, 1, 1.1],
-                             [1.1, 1, 1, 1, 1, 1.1],
-                             [1, 1, 1, 1, 1, 1],
-                             [1, 1, 1.1, 1.1, 1, 1]]
+                            [1.05, 1, 1, 1, 1, 1.05],
+                            [1.05, 1, 1, 1, 1, 1.05],
+                            [1, 1, 1, 1, 1, 1],
+                            [1, 1, 1.05, 1.05, 1, 1]]
 
         # As we can not enter color as parameter to __init__ function, as MrNovice does, we set it here.
         # Somehow we always have to set the opposite color of player_turn
