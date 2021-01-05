@@ -99,30 +99,40 @@ class MrCustom:
     def evaluateGame(self, board, player_wins, enemy_wins):
         # print("Evaluation of board started.")
 
-        # Checks for a passed pawn, meaning that it has passed all pawns and can no longer be attacked by pawns
-        def passed_pawn(coord):
+        def check_pawn(coord):
             # Checks for a passed pawn, meaning that it has passed all pawns and can no longer be attacked by pawns
+            # Checks for pawns in the same column, which should be avoided as they hinder each others movement
             row, col = board.number_notation(coord)
             pawn = board[coord]
+            is_passed = True
+            is_in_same_col = False
+            multiplier_passed = 0.3
+            multiplier_same_col = -0.2
             if pawn.color == "white":
                 for c in board.keys():
                     r_i, c_i = board.number_notation(c)
                     if board[c]:
                         figure = board[c]
+                        # Check if pawn is passed
                         if figure.abbriviation.lower() == "p" and figure.color == "black" and r_i >= row:
-                            return False
+                            is_passed = False
+                        # Check if another pawn is in same column
+                        if figure.abbriviation.lower() == "p" and figure.color == pawn.color and col == c_i and row != r_i:
+                            is_in_same_col = True
+
             else:
                 for c in board.keys():
                     r_i, c_i = board.number_notation(c)
                     if board[c]:
                         figure = board[c]
                         if figure.abbriviation.lower() == "p" and figure.color == "white" and r_i <= row:
-                            return False
-            return True
+                            is_passed = False
+                        if figure.abbriviation.lower() == "p" and figure.color == pawn.color and col == c_i and row != r_i:
+                            is_in_same_col = True
+            multiplier = 1.0 + multiplier_passed if is_passed else 1.0
+            multiplier = multiplier + multiplier_same_col if is_in_same_col else multiplier
+            return multiplier
 
-        def pawn_in_same_col():
-            # Checks for pawns in the same column, which should be avoided as they hinder each others movement
-            pass
 
         def isolated_pawn(coord):
 
@@ -142,40 +152,53 @@ class MrCustom:
 
         SCORE_CHECK = 5
 
-        field_value = [[1, 1, 1, 1, 1, 1],
-                       [1, 1, 1, 1, 1, 1],
-                       [1, 1.05, 1.1, 1.1, 1.05, 1],
-                       [1, 1.05, 1.1, 1.1, 1.05, 1],
-                       [1, 1, 1, 1, 1, 1],
-                       [1, 1, 1, 1, 1, 1]]
+        # Control center and promotion
+        pawn_field_value = [[1.1, 1.1, 1.1, 1.1, 1.1, 1.1],
+                            [1, 1, 1, 1, 1, 1],
+                            [1, 1, 1.1, 1.1, 1, 1],
+                            [1, 1, 1.1, 1.1, 1, 1],
+                            [1, 1, 1, 1, 1, 1],
+                            [1.1, 1.1, 1.1, 1.1, 1.1, 1.1]]
+
+        # Control center from afar
+        bishop_field_value = [[1.1, 1, 1, 1, 1.1, 1.1],
+                             [1.1, 1.1, 1, 1, 1.1, 1.1],
+                             [1, 1, 1, 1, 1, 1],
+                             [1, 1, 1, 1, 1, 1],
+                             [1.1, 1.1, 1, 1, 1.1, 1.1],
+                             [1.1, 1, 1, 1, 1, 1.1]]
+        # Control center
+        knight_field_value = [[1, 1, 1.1, 1.1, 1, 1],
+                             [1.1, 1.1, 1, 1, 1.1, 1.1],
+                             [1, 1, 1, 1, 1, 1],
+                             [1, 1, 1, 1, 1, 1],
+                             [1.1, 1.1, 1, 1, 1.1, 1.1],
+                             [1, 1, 1.1, 1.1, 1, 1]]
+
+        # Control center
+        rook_field_value = [[1, 1, 1.1, 1.1, 1, 1],
+                            [1, 1, 1, 1, 1, 1],
+                             [1.1, 1, 1, 1, 1, 1.1],
+                             [1.1, 1, 1, 1, 1, 1.1],
+                             [1, 1, 1, 1, 1, 1],
+                             [1, 1, 1.1, 1.1, 1, 1]]
 
         # As we can not enter color as parameter to __init__ function, as MrNovice does, we set it here.
         # Somehow we always have to set the opposite color of player_turn
         color = self.color
         score = 0
 
-        # print("Check winning")
-        t1 = time.time()
         if player_wins:
             return SCORE_WIN
         elif enemy_wins:
             return -SCORE_WIN
-        t2 = time.time()
-        # print("Checking winning in evaluation: ", t2-t1)
 
-        # print("Is in Check")
-        t1 = time.time()
         if board.is_in_check(color):
             score -= SCORE_CHECK
 
         if board.is_in_check(board.get_enemy(color)):
             score += SCORE_CHECK
 
-        t2 = time.time()
-        # print("Checking Is in Check in evaluation: ", t2-t1)
-
-        # print("Calc score")
-        t1 = time.time()
         for coord in board.keys():
             if (board[coord] is not None):
                 figure = board[coord]
@@ -183,28 +206,28 @@ class MrCustom:
 
                 figurescore = 0
                 fig_name = (figure.abbriviation).lower()
-                if fig_name == 'p':
-                    passed_multiplier = 1.2 if passed_pawn(coord) else 1
-                    figurescore = SCORE_PAWN * passed_multiplier
-                elif fig_name=='r':
-                    figurescore = SCORE_ROOK
-                elif fig_name=='b':
-                    figurescore = SCORE_BISHOP
-                elif fig_name=='n':
-                    figurescore = SCORE_KNIGHT
+
                 row, col = board.number_notation(coord)
 
-                figurescore = figurescore * field_value[row][col]
+                if fig_name == 'p':
+                    pawn_multiplier = check_pawn(coord)
+                    figurescore = SCORE_PAWN * pawn_multiplier
+                    figurescore = figurescore * pawn_field_value[row][col]
+                elif fig_name == 'r':
+                    figurescore = SCORE_ROOK
+                    figurescore = figurescore * rook_field_value[row][col]
+                elif fig_name == 'b':
+                    figurescore = SCORE_BISHOP
+                    figurescore = figurescore * bishop_field_value[row][col]
+                elif fig_name == 'n':
+                    figurescore = SCORE_KNIGHT
+                    figurescore = figurescore * knight_field_value[row][col]
 
                 if fig_color == color:
                     score += figurescore
                 else:
                     score -= figurescore
 
-        t2 = time.time()
-        # print("Checking Score Calc in evaluation: ", t2-t1)
-
-        # print("Evaluation of board ended.")
         return score
 
     def generate_next_move(self, gui):
@@ -264,7 +287,7 @@ class MrCustom:
             elif new_v == v:
                 bestmoves.append(m)
 
-            best_move = bestmoves[random.randint(0,len(bestmoves)-1)]
+            best_move = bestmoves[random.randint(0, len(bestmoves) - 1)]
             # RESET
             board[m[0]] = _from_fig
             board[m[1]] = _to_fig
@@ -314,8 +337,7 @@ class MrCustom:
             elif new_v == v:
                 bestmoves.append(m)
 
-            best_move = bestmoves[random.randint(0,len(bestmoves)-1)]
-
+            best_move = bestmoves[random.randint(0, len(bestmoves) - 1)]
 
             # RESET
             board[m[0]] = _from_fig
@@ -328,7 +350,6 @@ class MrCustom:
             beta = min(beta, v)
 
         return v, best_move
-
 
     def preorder_moves(self, moves, board, min_or_max):
         """
