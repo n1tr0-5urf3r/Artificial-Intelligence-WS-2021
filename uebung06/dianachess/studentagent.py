@@ -265,7 +265,7 @@ class MrCustom:
         v = -math.inf
         bestmoves = []
         best_move = None
-        sorted_moves = self.preorder_moves(moves, board, True)
+        sorted_moves = self.preorder_moves(moves, board, False)
 
         for m in sorted_moves:
             # COPY
@@ -315,7 +315,6 @@ class MrCustom:
         bestmoves = []
         best_move = None
         sorted_moves = self.preorder_moves(moves, board, True)
-
         for m in sorted_moves:
             # COPY
             _from_fig = board[m[0]]
@@ -344,7 +343,6 @@ class MrCustom:
             board[m[1]] = _to_fig
             board.player_turn = player
             board.fullmove_number = move_number
-
             if v <= alpha:
                 return v, best_move
             beta = min(beta, v)
@@ -373,4 +371,5 @@ class MrCustom:
                              str(order[order.index(source)]) + " " + debugStr + str(order[order.index(target)])))
 
         sorted_moves = sorted(m_values, key=lambda tup: tup[2])
+        sorted_moves.reverse() if min_or_max else sorted_moves
         return sorted_moves
