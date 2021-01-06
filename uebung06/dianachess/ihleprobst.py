@@ -3,7 +3,8 @@ import math
 from copy import deepcopy, copy
 import time
 
-"""   
+"""
+Authors: Fabian Ihle, Lukas Probst   
 
 - Generally, coordinates/positions are 'A3', 'B3',...
 - board[coord] returns the piece at coord
@@ -88,7 +89,7 @@ def possble_moves(pos)
 
 # After perform_move(), make sure that the agent does not continue searching for moves!
 
-class MrCustom:
+class IhleProbst:
 
     def __init__(self, delay=0, threshold=2):
         self.delay = delay
@@ -153,9 +154,10 @@ class MrCustom:
             pawn = board[coord]
             is_passed = True
             is_in_same_col = False
-            multiplier_passed = 0.3
-            multiplier_same_col = -0.1
-            multiplier_doubled = 0.2
+            # Those multiplier get added up to a single multiplier
+            multiplier_passed = 2
+            multiplier_same_col = -1
+            multiplier_doubled = 1.5
             if pawn.color == "white":
                 for c in board.keys():
                     r_i, c_i = board.number_notation(c)
@@ -207,7 +209,7 @@ class MrCustom:
                               [1.05, 1.05, 1, 1, 1.05, 1.05],
                               [1.05, 1, 1, 1, 1, 1.05]]
         # Control center
-        knight_field_value = [[1, 1, 1.05, 0.5, 1, 1],
+        knight_field_value = [[1, 1, 0.5, 1.05, 1, 1],
                               [1.05, 1.05, 1, 1, 1.05, 1.05],
                               [1, 1, 1, 1, 1, 1],
                               [1, 1, 1, 1, 1, 1],
@@ -222,8 +224,6 @@ class MrCustom:
                             [1, 1, 1, 1, 1, 1],
                             [1, 1, 1.05, 1.05, 1, 1]]
 
-        # As we can not enter color as parameter to __init__ function, as MrNovice does, we set it here.
-        # Somehow we always have to set the opposite color of player_turn
         color = self.color
         score = 0
 
@@ -250,8 +250,8 @@ class MrCustom:
 
                 if fig_name == 'p':
                     pawn_multiplier = check_pawn(coord)
-                    figurescore = SCORE_PAWN * pawn_multiplier
-                    figurescore = figurescore * pawn_field_value[row][col]
+                    figurescore = SCORE_PAWN
+                    figurescore = figurescore * (pawn_field_value[row][col] + pawn_multiplier)
                 elif fig_name == 'r':
                     figurescore = SCORE_ROOK
                     figurescore = figurescore * rook_field_value[row][col]
@@ -278,6 +278,13 @@ class MrCustom:
             self.firstRun = False
 
         search_depth = 3
+
+        # Select a random move if everything goes wrong
+        board = gui.chessboard
+        moves = board.generate_valid_moves(board.player_turn)
+        random.shuffle(moves)
+        if len(moves) > 0:
+            board.update_move(moves[0])
 
         bestmove = self.alpha_beta_search(gui, search_depth)
         gui.chessboard.update_move(bestmove)
@@ -397,17 +404,13 @@ class MrCustom:
         """
 
         order = ["k", "r", "b", "n", "p", None]
-        debugStr = "Defend " if min_or_max else "Attack "
         if min_or_max:
             order.reverse()
         m_values = []
         for m in moves:
             # Kill the highest valued target: king, rook, bishop, knight and pawn
-            source = board[m[0]].abbriviation.lower()
             target = board[m[1]].abbriviation.lower() if board[m[1]] else None
-            # todo remove last element from tuple
-            m_values.append((m[0], m[1], order.index(target),
-                             str(order[order.index(source)]) + " " + debugStr + str(order[order.index(target)])))
+            m_values.append((m[0], m[1], order.index(target)))
 
         sorted_moves = sorted(m_values, key=lambda tup: tup[2])
         sorted_moves.reverse() if min_or_max else sorted_moves
