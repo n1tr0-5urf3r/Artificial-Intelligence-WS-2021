@@ -74,7 +74,7 @@ def startGame(root,board,gui):
                 elif PLAYER_1 == 4:
                     t = thread_with_trace(target = MrExpert().generate_next_move, args=(gui,))
                 elif PLAYER_1 == 5:
-                    t = thread_with_trace(target = MrCustom().generate_next_move, args=(gui,))
+                    t = thread_with_trace(target = IhleProbst().generate_next_move, args=(gui,))
 
                 gui.current_engine_thread = t
                 t.start()
@@ -93,7 +93,7 @@ def startGame(root,board,gui):
                 elif PLAYER_2 == 4:
                     t = thread_with_trace(target = MrExpert().generate_next_move, args=(gui,))
                 elif PLAYER_2 == 5:
-                    t = thread_with_trace(target = MrCustom().generate_next_move, args=(gui,))
+                    t = thread_with_trace(target = IhleProbst().generate_next_move, args=(gui,))
   
                 gui.current_engine_thread = t
                 t.start()

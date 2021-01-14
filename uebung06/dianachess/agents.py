@@ -2,7 +2,7 @@ import time
 import random
 import math
 from copy import deepcopy, copy
-from studentagent import *
+from ihleprobst import *
 
 class MrRandom:
     
