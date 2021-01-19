@@ -1,5 +1,6 @@
 # # Assignment 06 - LRTA
 # ## Initialization
+# Authors: Fabian Ihle, Lukas Probst
 
 import time
 import copy
@@ -106,14 +107,12 @@ nodes = initialize_all_nodes()
 
 def check_consistency(node):
     inconsistency = []
-    goal_node = nodes['E5']
-    for k, v in nodes.items():
-        h_n = v.h
-        for idx, neighbor in enumerate(v.neighbours):
-            c_n = v.dist_neighbours[idx]
-            h_n_prime = neighbor.h
-            if h_n > c_n + h_n_prime:
-                inconsistency.append(neighbor)
+    h_n = node.h
+    for idx, neighbor in enumerate(node.neighbours):
+        c_n = node.dist_neighbours[idx]
+        h_n_prime = neighbor.h
+        if h_n > c_n + h_n_prime:
+            inconsistency.append(neighbor)
     return inconsistency
 
 for node in nodes.values():
